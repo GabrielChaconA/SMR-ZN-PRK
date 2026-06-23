@@ -75,9 +75,3 @@ The system follows a modular data pipeline architecture:
 | **Environmental Conditions** | Handling intense sun, shade, night, rain, and occlusions. | Training with diverse datasets. |
 
 
-
-## Contact
-
-**DevStar** - [Website](#) - email@example.com
-
-Project Link: [https://github.com/GabrielChaconA/SMR-ZN-PRK](https://github.com/GabrielChaconA/SMR-ZN-PRK)
