@@ -75,3 +75,43 @@ The system follows a modular data pipeline architecture:
 | **Environmental Conditions** | Handling intense sun, shade, night, rain, and occlusions. | Training with diverse datasets. |
 
 
+
+## Configuración del Entorno (Setup)
+
+Este proyecto cuenta con un entorno profesional, preparado para el desarrollo modular y escalable.
+
+### Pre-requisitos
+- Python 3.12+
+- Docker y Docker Compose (Opcional, para ejecución en contenedores)
+- Git
+
+### Instalación Local
+1. Clona este repositorio.
+2. Crea y activa el entorno virtual:
+   ```bash
+   python -m venv .venv
+   # Windows
+   .\.venv\Scripts\activate
+   # Linux/macOS
+   source .venv/bin/activate
+   ```
+3. Instala las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Copia el archivo de variables de entorno y ajústalo si es necesario:
+   ```bash
+   cp .env.example .env
+   ```
+
+### Uso con Docker
+Si prefieres aislar el entorno, puedes usar Docker:
+```bash
+docker-compose up --build
+```
+Esto levantará la interfaz de Streamlit en `http://localhost:8501`.
+
+## Contact
+
+
+Project Link: [https://github.com/GabrielChaconA/SMR-ZN-PRK](https://github.com/GabrielChaconA/SMR-ZN-PRK)
