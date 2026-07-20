@@ -1,20 +1,14 @@
 <div align="center">
+  <h1 align="center">Intelligent Urban Parking Space Detection System</h3>
   <img src="img/Logo.jpeg" alt="DevStar Logo" width="100%">
 
-  <h3 align="center">Intelligent Urban Parking Space Detection System</h3>
+  
 
   <p align="center">
     A computer vision system to automate the monitoring and estimation of available parking spaces on public streets.
     <br />
     <br />
-    <a href="#about-the-project"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="#">View Demo</a>
-    ·
-    <a href="#">Report Bug</a>
-    ·
-    <a href="#">Request Feature</a>
+    
   </p>
 </div>
 
