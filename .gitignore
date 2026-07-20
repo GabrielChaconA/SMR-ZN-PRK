@@ -1,0 +1,24 @@
+# Entornos Virtuales
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Variables de Entorno
+.env
+
+# Directorios de Datos (Evitar subir datasets pesados y modelos)
+datasets/
+models/
+!models/.gitkeep
+!datasets/.gitkeep
+
+# IDE y Sistema Operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
