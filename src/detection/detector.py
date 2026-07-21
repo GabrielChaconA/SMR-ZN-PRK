@@ -1,56 +1,62 @@
 import cv2
-import torch
 import numpy as np
-# from ultralytics import YOLO
 
 class ParkingDetector:
     """
-    Clase backend que aísla la lógica de Machine Learning (YOLO, OpenCV, PyTorch).
-    La interfaz de usuario de Streamlit se comunicará con esta clase, en lugar de 
-    ejecutar inferencias o lógica de OpenCV directamente en el archivo UI.
+    Clase backend que utiliza OpenCV Background Subtractor (MOG2)
+    para detectar vehículos en movimiento sin requerir modelos pesados de Deep Learning.
     """
     
     def __init__(self):
-        # Aquí se cargarían los pesos del modelo YOLO o cualquier otro modelo
-        # Por ahora usaremos un mock simple para verificar la conectividad.
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self._load_model()
-        print(f"ParkingDetector inicializado usando dispositivo: {self.device}")
+        # MOG2 es robusto ante sombras y cambios de iluminación (ideal para estacionamientos)
+        self.back_sub = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=50, detectShadows=True)
+        # Filtro de tamaño mínimo para ignorar ruido (pájaros, hojas)
+        self.min_area = 500
+        print("ParkingDetector inicializado con OpenCV MOG2.")
 
-    def _load_model(self):
-        """Simula la carga de un modelo pesado. Debe ejecutarse solo una vez."""
-        # self.model = YOLO("yolov8n.pt")
-        self.model_loaded = True
-        
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         """
-        Recibe un frame (imagen) BGR desde OpenCV, realiza la inferencia de ML,
-        dibuja las predicciones (bounding boxes) y lo devuelve en formato RGB
-        para que la UI de Streamlit lo renderice fácilmente.
+        Detecta objetos en movimiento, dibuja Bounding Boxes sobre el frame original
+        y lo devuelve en formato RGB para Streamlit.
         """
-        if not self.model_loaded:
-            raise RuntimeError("El modelo no ha sido cargado.")
-
-        # SIMULACIÓN DE INFERENCIA: 
-        # En el código real, aquí llamaríamos a self.model(frame) y 
-        # procesaríamos las cajas de detección.
+        # 1. Aplicar substracción de fondo para obtener la máscara
+        fg_mask = self.back_sub.apply(frame)
         
-        # Simulamos procesamiento agregando texto sobre el frame
+        # 2. Limpiar el ruido de la máscara usando operaciones morfológicas
+        # Kernel 5x5 para eliminar píxeles sueltos
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
+        fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
+        
+        # 3. Encontrar contornos de los objetos detectados
+        contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
         processed_frame = frame.copy()
+        detected_count = 0
         
-        # OpenCV usa BGR por defecto, escribimos texto en verde simulando detección
+        # 4. Dibujar Bounding Boxes sobre los contornos grandes
+        for contour in contours:
+            if cv2.contourArea(contour) > self.min_area:
+                x, y, w, h = cv2.boundingRect(contour)
+                # Dibujar rectángulo ROJO (en BGR es 0, 0, 255)
+                cv2.rectangle(processed_frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                
+                # Opcional: Escribir etiqueta arriba de la caja
+                cv2.putText(processed_frame, "Movimiento", (x, y - 10), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                detected_count += 1
+                
+        # 5. Agregar contador en la esquina
         cv2.putText(
             processed_frame, 
-            f"Inferencia ML Activa (Dispositivo: {self.device})", 
+            f"Objetos detectados: {detected_count}", 
             (20, 50), 
             cv2.FONT_HERSHEY_SIMPLEX, 
             1, 
-            (0, 255, 0), # Verde en BGR
+            (0, 255, 0), # Verde
             2
         )
         
-        # Streamlit espera imágenes en formato RGB, así que el backend se encarga 
-        # de devolver la imagen en el formato adecuado para la Vista.
-        rgb_frame = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
-        
-        return rgb_frame
+        # Streamlit espera formato RGB
+        return cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
+
