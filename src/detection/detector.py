@@ -1,62 +1,53 @@
 import cv2
 import numpy as np
+from ultralytics import YOLO
+from typing import Tuple
 
 class ParkingDetector:
     """
-    Clase backend que utiliza OpenCV Background Subtractor (MOG2)
-    para detectar vehículos en movimiento sin requerir modelos pesados de Deep Learning.
+    Clase backend que utiliza Ultralytics YOLOv8
+    para detectar vehículos (coches, autobuses, camiones) con alta precisión.
     """
     
     def __init__(self):
-        # MOG2 es robusto ante sombras y cambios de iluminación (ideal para estacionamientos)
-        self.back_sub = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=50, detectShadows=True)
-        # Filtro de tamaño mínimo para ignorar ruido (pájaros, hojas)
-        self.min_area = 500
-        print("ParkingDetector inicializado con OpenCV MOG2.")
+        # Cargar el modelo preentrenado más ligero de YOLOv8
+        # En el primer uso, descargará automáticamente el archivo yolov8n.pt (pocos MB)
+        self.model = YOLO("yolov8n.pt")
+        
+        # Clases de COCO que nos interesan: 2: car, 5: bus, 7: truck
+        self.target_classes = [2, 5, 7]
+        print("ParkingDetector inicializado con Ultralytics YOLOv8.")
 
-    def process_frame(self, frame: np.ndarray) -> np.ndarray:
+    def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, int]:
         """
-        Detecta objetos en movimiento, dibuja Bounding Boxes sobre el frame original
-        y lo devuelve en formato RGB para Streamlit.
+        Detecta vehículos usando YOLO, dibuja Bounding Boxes sobre el frame original
+        y lo devuelve en formato RGB junto con la cantidad de vehículos detectados.
         """
-        # 1. Aplicar substracción de fondo para obtener la máscara
-        fg_mask = self.back_sub.apply(frame)
-        
-        # 2. Limpiar el ruido de la máscara usando operaciones morfológicas
-        # Kernel 5x5 para eliminar píxeles sueltos
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
-        fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
-        
-        # 3. Encontrar contornos de los objetos detectados
-        contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Ejecutar inferencia sobre el frame
+        # verbose=False para no saturar los logs
+        # conf=0.3 para filtrar falsos positivos de baja confianza
+        results = self.model(frame, classes=self.target_classes, conf=0.3, verbose=False)
         
         processed_frame = frame.copy()
         detected_count = 0
         
-        # 4. Dibujar Bounding Boxes sobre los contornos grandes
-        for contour in contours:
-            if cv2.contourArea(contour) > self.min_area:
-                x, y, w, h = cv2.boundingRect(contour)
-                # Dibujar rectángulo ROJO (en BGR es 0, 0, 255)
-                cv2.rectangle(processed_frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        # Extraer las cajas delimitadoras del primer (y único) resultado
+        for box in results[0].boxes:
+            # Obtener coordenadas de la caja
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            conf = float(box.conf[0])
+            cls_id = int(box.cls[0])
+            
+            # Dibujar rectángulo azul cyan
+            cv2.rectangle(processed_frame, (x1, y1), (x2, y2), (255, 150, 0), 2)
+            
+            # Etiqueta
+            label = f"{self.model.names[cls_id]} {conf:.2f}"
+            cv2.putText(processed_frame, label, (x1, max(y1 - 10, 0)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 150, 0), 2)
+                        
+            detected_count += 1
                 
-                # Opcional: Escribir etiqueta arriba de la caja
-                cv2.putText(processed_frame, "Movimiento", (x, y - 10), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-                detected_count += 1
-                
-        # 5. Agregar contador en la esquina
-        cv2.putText(
-            processed_frame, 
-            f"Objetos detectados: {detected_count}", 
-            (20, 50), 
-            cv2.FONT_HERSHEY_SIMPLEX, 
-            1, 
-            (0, 255, 0), # Verde
-            2
-        )
-        
         # Streamlit espera formato RGB
-        return cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
+        return cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB), detected_count
 

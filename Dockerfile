@@ -5,6 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Evitar que la salida de Python se ponga en el buffer
 ENV PYTHONUNBUFFERED=1
 
+# Añadir la raíz del proyecto al PYTHONPATH para que los imports de src funcionen
+ENV PYTHONPATH=/app
+
 WORKDIR /app
 
 # Instalar dependencias del sistema necesarias para OpenCV y utilidades
