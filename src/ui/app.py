@@ -10,51 +10,77 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from src.detection.space_finder import SpaceFinder
 
 st.set_page_config(
-    page_title="CAM SCAN — Control Room",
-    page_icon="📹",
+    page_title="SMART ZONE PARK - AI System",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# ── CSS Personalizado para un look de "Centro de Control" ──────────────────
+# ── CSS Personalizado para un look de "Cine / Hollywood" ──────────────────
 st.markdown("""
 <style>
+    /* Fondo completamente negro */
     .stApp {
-        background-color: #0e1117;
-        color: #e2e8f0;
+        background-color: #000000;
+        color: #ffffff;
+    }
+    /* Ajustar márgenes para que no se corte el texto superior */
+    .block-container {
+        padding-top: 3rem !important;
+        padding-bottom: 1rem !important;
+        max-width: 95% !important;
     }
     .main-header {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #38bdf8;
-        margin-bottom: -1rem;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffffff;
+        letter-spacing: 2px;
+        margin-bottom: -0.5rem;
+        text-transform: uppercase;
     }
     .sub-header {
-        color: #94a3b8;
-        font-size: 0.9rem;
-        margin-bottom: 2rem;
+        color: #0078D7; /* Azul corporativo que mostraste en el logo */
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 3px;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
     }
     .metric-box {
-        background-color: #1e293b;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #334155;
+        background-color: #0a0a0a;
+        padding: 1.5rem 1rem;
+        border-radius: 4px;
+        border: 1px solid #222;
         text-align: center;
         margin-bottom: 1rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.5);
     }
     .metric-title {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
-        color: #94a3b8;
-        letter-spacing: 1px;
+        color: #888;
+        letter-spacing: 2px;
+        margin-bottom: 0.5rem;
     }
     .metric-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #f8fafc;
+        font-size: 3rem;
+        font-weight: 300;
+        color: #ffffff;
     }
-    .metric-blue { color: #60a5fa; }
-    .metric-green { color: #4ade80; }
+    .metric-blue { color: #0078D7; }
+    .metric-green { color: #00ff66; }
+    
+    /* Botones estilo minimalista */
+    .stButton>button {
+        border-radius: 2px !important;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+    
+    /* Evitar que videos verticales o muy grandes hagan la página infinita */
+    [data-testid="stImage"] img {
+        max-height: 75vh !important;
+        object-fit: contain !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -73,59 +99,71 @@ def draw_metric_box(title, value, color_class=""):
 
 
 def main():
-    st.markdown('<div class="main-header">📷 CAM SCAN Control Room</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Búsqueda de Huecos en Calle (Universal AI)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">SMART ZONE PARK</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">SISTEMA DE ESTACIONAMIENTO CON IA</div>', unsafe_allow_html=True)
 
     detector = load_detector()
 
+    # Estado de ejecución para arrancar y detener
+    if "is_running" not in st.session_state:
+        st.session_state.is_running = False
+
     # ── Layout ───────────────────────────────────────────────
-    col_sidebar, col_feed = st.columns([1, 3])
+    # Proporción 1 a 2.5 para que el video no se vuelva tan alto que se salga de la pantalla
+    col_sidebar, col_feed = st.columns([1, 2.5])
 
     with col_sidebar:
-        st.subheader("Configuración de Fuente")
+        st.markdown("<div style='color:#888; font-size:0.8rem; letter-spacing:1px; margin-bottom:10px;'>PANEL DE CONTROL</div>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader(
-            "Cargar metraje CCTV (Video/Imagen)",
-            type=["mp4", "avi", "mov", "jpg", "jpeg", "png"]
+            "Fuente CCTV",
+            type=["mp4", "avi", "mov", "jpg", "jpeg", "png"],
+            label_visibility="collapsed"
         )
-        btn_process = st.button("▶ Iniciar Monitoreo", type="primary", use_container_width=True)
         
-        st.divider()
-        st.subheader("Analíticas en Vivo")
+        c1, c2 = st.columns(2)
+        with c1:
+            btn_start = st.button("INICIAR", type="primary", use_container_width=True)
+        with c2:
+            btn_stop = st.button("PARAR", type="secondary", use_container_width=True)
+            
+        if btn_start:
+            st.session_state.is_running = True
+        if btn_stop:
+            st.session_state.is_running = False
         
-        # Placeholders para las métricas que se actualizarán en el bucle
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Placeholders para métricas
         metric_cars_placeholder = st.empty()
         metric_free_placeholder = st.empty()
         
-        # Valores por defecto
         with metric_cars_placeholder.container():
-            draw_metric_box("Vehículos Detectados", 0, "metric-blue")
+            draw_metric_box("Vehículos", 0, "metric-blue")
         with metric_free_placeholder.container():
             draw_metric_box("Huecos Libres", 0, "metric-green")
 
     with col_feed:
-        # Aquí se renderizará el video
         feed_placeholder = st.empty()
         
-        if not btn_process:
+        if not st.session_state.is_running:
             feed_placeholder.markdown("""
-            <div style='background-color:#1e293b; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; border: 1px dashed #475569; border-radius:0.5rem;'>
-                <span style='color:#64748b;'>Esperando señal de video...</span>
+            <div style='background-color:#050505; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; border: 1px solid #222;'>
+                <span style='color:#333; font-family: monospace; letter-spacing: 2px;'>NO SIGNAL</span>
             </div>
             """, unsafe_allow_html=True)
 
     # ── Lógica de procesamiento ───────────────────────────────────────────────
-    if btn_process:
+    if st.session_state.is_running:
         if uploaded_file is None:
-            # Usar video de referencia por defecto
             default_video_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/raw/custom/videos/referencia estacionamiento.mp4'))
             if os.path.exists(default_video_path):
-                st.info("Usando video de referencia por defecto...")
                 source_path = default_video_path
                 is_video = True
                 tfile = None
             else:
-                st.error("Por favor sube un archivo para procesar.")
-                return
+                st.error("Error: No se encontró fuente de video.")
+                st.session_state.is_running = False
+                st.rerun()
         else:
             suffix = os.path.splitext(uploaded_file.name)[-1].lower()
             is_video = suffix in [".mp4", ".avi", ".mov"]
@@ -142,26 +180,32 @@ def main():
                 if tfile is not None:
                     tfile.close()
                     os.unlink(source_path)
-                return
+                st.session_state.is_running = False
+                st.rerun()
 
-            with st.spinner("Ejecutando SpaceFinder..."):
-                while cap.isOpened():
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
+            while cap.isOpened() and st.session_state.is_running:
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-                    processed_rgb, cars, valid_gaps = detector.process_frame(frame)
+                processed_rgb, cars, valid_gaps = detector.process_frame(frame)
 
-                    # Actualizar UI
-                    with metric_cars_placeholder.container():
-                        draw_metric_box("Vehículos Detectados", cars, "metric-blue")
-                    with metric_free_placeholder.container():
-                        draw_metric_box("Huecos Libres", valid_gaps, "metric-green")
+                with metric_cars_placeholder.container():
+                    draw_metric_box("Vehículos", cars, "metric-blue")
+                with metric_free_placeholder.container():
+                    draw_metric_box("Huecos Libres", valid_gaps, "metric-green")
 
-                    feed_placeholder.image(processed_rgb, channels="RGB", use_container_width=True)
+                # Mostrar imagen ajustada a la columna pero completa
+                feed_placeholder.image(processed_rgb, channels="RGB", use_container_width=True)
 
             cap.release()
-            st.success("Transmisión finalizada.")
+            if tfile is not None:
+                tfile.close()
+                os.unlink(source_path)
+                
+            # Si el video terminó naturalmente
+            if not st.session_state.is_running:
+                st.rerun()
 
         else:
             # Imagen estática
@@ -170,16 +214,17 @@ def main():
                 processed_rgb, cars, valid_gaps = detector.process_frame(frame)
                 
                 with metric_cars_placeholder.container():
-                    draw_metric_box("Vehículos Detectados", cars, "metric-blue")
+                    draw_metric_box("Vehículos", cars, "metric-blue")
                 with metric_free_placeholder.container():
                     draw_metric_box("Huecos Libres", valid_gaps, "metric-green")
                     
                 feed_placeholder.image(processed_rgb, channels="RGB", use_container_width=True)
-                st.success("Análisis de imagen completado.")
 
-        if tfile is not None:
-            tfile.close()
-            os.unlink(source_path)
+            if tfile is not None:
+                tfile.close()
+                os.unlink(source_path)
+            
+            st.session_state.is_running = False
 
 if __name__ == "__main__":
     main()
