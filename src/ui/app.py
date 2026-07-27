@@ -3,175 +3,183 @@ import cv2
 import tempfile
 import os
 import sys
-import base64
 
-# Añadir la raíz del proyecto al sys.path para que encuentre la carpeta 'src'
+# Añadir raíz del proyecto al sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.detection.detector import ParkingDetector
+from src.detection.space_finder import SpaceFinder
 
-# Configuración de página con título actualizado
-st.set_page_config(page_title="Smart Zone Park", layout="wide")
+st.set_page_config(
+    page_title="CAM SCAN — Control Room",
+    page_icon="📹",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ── CSS Personalizado para un look de "Centro de Control" ──────────────────
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #0e1117;
+        color: #e2e8f0;
+    }
+    .main-header {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #38bdf8;
+        margin-bottom: -1rem;
+    }
+    .sub-header {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+    }
+    .metric-box {
+        background-color: #1e293b;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #334155;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .metric-title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #94a3b8;
+        letter-spacing: 1px;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #f8fafc;
+    }
+    .metric-blue { color: #60a5fa; }
+    .metric-green { color: #4ade80; }
+</style>
+""", unsafe_allow_html=True)
+
 
 @st.cache_resource
 def load_detector():
-    return ParkingDetector()
+    return SpaceFinder()
 
-def get_base64_of_bin_file(bin_file):
-    """Lee un archivo y lo convierte a base64 para inyectarlo en HTML."""
-    try:
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except:
-        return ""
-
-def render_html_sidebar(occupied_count: int, total_spots: int = 40):
-    """Genera el HTML de las tarjetas laterales (Stats) con los números dinámicos de YOLO."""
-    free_count = total_spots - occupied_count
-    occupancy_pct = int((occupied_count / total_spots) * 100) if total_spots > 0 else 0
-    
-    html = f"""
-    <div class="tech-card">
-        <div class="stat-icon icon-blue"></div>
-        <div class="stat-content">
-            <span class="stat-label">Total de carros (Detectados)</span>
-            <span class="stat-value">{occupied_count}</span>
-        </div>
-    </div>
-    
-    <div class="tech-card">
-        <div class="stat-icon icon-red"></div>
-        <div class="stat-content">
-            <span class="stat-label">Espacios ocupados</span>
-            <span class="stat-value">{occupied_count}</span>
-        </div>
-    </div>
-    
-    <div class="tech-card">
-        <div class="stat-icon icon-green"></div>
-        <div class="stat-content">
-            <span class="stat-label">Espacios libres</span>
-            <span class="stat-value">{free_count}</span>
-        </div>
-    </div>
-    
-    <div class="tech-card" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
-        <div style="display: flex; justify-content: space-between; width: 100%;">
-            <span class="stat-label">Ocupación</span>
-            <span class="stat-value" style="font-size: 1rem;">{occupancy_pct}%</span>
-        </div>
-        <div class="progress-container">
-            <div class="progress-bar" style="width: {occupancy_pct}%;"></div>
-        </div>
-        <span class="stat-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
-            {occupied_count} de {total_spots} espacios estimados ocupados
-        </span>
-    </div>
-    """
-    return html
-
-def main():
-    # 1. Inyectar CSS personalizado
-    css_path = os.path.join(os.path.dirname(__file__), "style.css")
-    if os.path.exists(css_path):
-        with open(css_path) as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-    # 2. Renderizar Header Personalizado
-    logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
-    logo_b64 = get_base64_of_bin_file(logo_path)
-    
+def draw_metric_box(title, value, color_class=""):
     st.markdown(f"""
-    <div class="szp-header">
-        <div class="szp-logo-box">
-            <img src="data:image/png;base64,{logo_b64}" alt="Logo" style="height: 3.5rem;">
-        </div>
-        <div class="szp-title-box">
-            <h1>Smart Zone Park</h1>
-            <p>Sistema de estacionamiento con IA</p>
-        </div>
+    <div class="metric-box">
+        <div class="metric-title">{title}</div>
+        <div class="metric-value {color_class}">{value}</div>
     </div>
     """, unsafe_allow_html=True)
-    
+
+
+def main():
+    st.markdown('<div class="main-header">📷 CAM SCAN Control Room</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Búsqueda de Huecos en Calle (Universal AI)</div>', unsafe_allow_html=True)
+
     detector = load_detector()
 
-    # 3. Layout Principal (Grilla)
-    col_main, col_sidebar = st.columns([7, 3])
-    
-    with col_main:
-        col_title, col_btn = st.columns([6, 4])
-        with col_title:
-            st.markdown("""
-            <h3 style="margin: 0; padding-top: 0.5rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; color: #f8fafc;">
-                Vista del estacionamiento
-            </h3>
-            """, unsafe_allow_html=True)
-        with col_btn:
-            btn_start = st.button("Ejecutar Monitoreo", type="primary", use_container_width=True)
-            
-        stframe_processed = st.empty()
-        
-        # Mostrar el recuadro negro por defecto antes de correr el video
-        stframe_processed.markdown("""
-        <div class="video-placeholder">
-            <p>Esperando entrada de video...</p>
-        </div>
-        """, unsafe_allow_html=True)
+    # ── Layout ───────────────────────────────────────────────
+    col_sidebar, col_feed = st.columns([1, 3])
 
-        # El file uploader va debajo de la pantalla de transmisión
-        st.markdown("<h4 style='color:#94a3b8; font-size:0.85rem; text-transform:uppercase; margin-top:0.5rem; margin-bottom:0;'>Cargar multimedia local</h4>", unsafe_allow_html=True)
-        uploaded_video = st.file_uploader("Agrega fotos o videos para procesarlos con IA", type=["mp4", "jpg", "png"], label_visibility="collapsed")
-        
     with col_sidebar:
-        # Contenedor dinámico para las estadísticas
-        st_stats = st.empty()
-        # Render inicial translúcido indicando espera
-        st_stats.markdown("""
-        <div class="sidebar-placeholder">
-            Esperando entrada...
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader("Configuración de Fuente")
+        uploaded_file = st.file_uploader(
+            "Cargar metraje CCTV (Video/Imagen)",
+            type=["mp4", "avi", "mov", "jpg", "jpeg", "png"]
+        )
+        btn_process = st.button("▶ Iniciar Monitoreo", type="primary", use_container_width=True)
+        
+        st.divider()
+        st.subheader("Analíticas en Vivo")
+        
+        # Placeholders para las métricas que se actualizarán en el bucle
+        metric_cars_placeholder = st.empty()
+        metric_free_placeholder = st.empty()
+        
+        # Valores por defecto
+        with metric_cars_placeholder.container():
+            draw_metric_box("Vehículos Detectados", 0, "metric-blue")
+        with metric_free_placeholder.container():
+            draw_metric_box("Huecos Libres", 0, "metric-green")
 
-    # Lógica de carga de archivo
-    default_video_path = os.path.join("data", "raw", "custom", "videos", "bdd_sample.mp4")
-    video_source = None
-    if uploaded_video is not None:
-        tfile = tempfile.NamedTemporaryFile(delete=False)
-        tfile.write(uploaded_video.read())
-        video_source = tfile.name
-    elif os.path.exists(default_video_path):
-        video_source = default_video_path
+    with col_feed:
+        # Aquí se renderizará el video
+        feed_placeholder = st.empty()
+        
+        if not btn_process:
+            feed_placeholder.markdown("""
+            <div style='background-color:#1e293b; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; border: 1px dashed #475569; border-radius:0.5rem;'>
+                <span style='color:#64748b;'>Esperando señal de video...</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # 4. Loop de Procesamiento
-    if btn_start:
-        if not video_source:
-            st.warning("Sube un video o foto para comenzar.")
-            return
+    # ── Lógica de procesamiento ───────────────────────────────────────────────
+    if btn_process:
+        if uploaded_file is None:
+            # Usar video de referencia por defecto
+            default_video_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/raw/custom/videos/referencia estacionamiento.mp4'))
+            if os.path.exists(default_video_path):
+                st.info("Usando video de referencia por defecto...")
+                source_path = default_video_path
+                is_video = True
+                tfile = None
+            else:
+                st.error("Por favor sube un archivo para procesar.")
+                return
+        else:
+            suffix = os.path.splitext(uploaded_file.name)[-1].lower()
+            is_video = suffix in [".mp4", ".avi", ".mov"]
 
-        cap = cv2.VideoCapture(video_source)
-        if not cap.isOpened():
-            st.error("Error abriendo el archivo.")
-            return
-            
-        with st.spinner("Inicializando modelo YOLOv8..."):
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    break
+            tfile = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+            tfile.write(uploaded_file.read())
+            tfile.flush()
+            source_path = tfile.name
+
+        if is_video:
+            cap = cv2.VideoCapture(source_path)
+            if not cap.isOpened():
+                st.error("Error al leer el video.")
+                if tfile is not None:
+                    tfile.close()
+                    os.unlink(source_path)
+                return
+
+            with st.spinner("Ejecutando SpaceFinder..."):
+                while cap.isOpened():
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+
+                    processed_rgb, cars, valid_gaps = detector.process_frame(frame)
+
+                    # Actualizar UI
+                    with metric_cars_placeholder.container():
+                        draw_metric_box("Vehículos Detectados", cars, "metric-blue")
+                    with metric_free_placeholder.container():
+                        draw_metric_box("Huecos Libres", valid_gaps, "metric-green")
+
+                    feed_placeholder.image(processed_rgb, channels="RGB", use_container_width=True)
+
+            cap.release()
+            st.success("Transmisión finalizada.")
+
+        else:
+            # Imagen estática
+            frame = cv2.imread(source_path)
+            if frame is not None:
+                processed_rgb, cars, valid_gaps = detector.process_frame(frame)
                 
-                # Procesar con YOLO
-                processed_rgb, cars_count = detector.process_frame(frame)
-                
-                # Actualizar Video
-                stframe_processed.image(processed_rgb, channels="RGB", use_container_width=True)
-                
-                # Reemplazar el placeholder con los stats reales
-                st_stats.markdown(render_html_sidebar(cars_count), unsafe_allow_html=True)
-                
-        cap.release()
-        st.success("Monitoreo finalizado.")
+                with metric_cars_placeholder.container():
+                    draw_metric_box("Vehículos Detectados", cars, "metric-blue")
+                with metric_free_placeholder.container():
+                    draw_metric_box("Huecos Libres", valid_gaps, "metric-green")
+                    
+                feed_placeholder.image(processed_rgb, channels="RGB", use_container_width=True)
+                st.success("Análisis de imagen completado.")
+
+        if tfile is not None:
+            tfile.close()
+            os.unlink(source_path)
 
 if __name__ == "__main__":
     main()
-
