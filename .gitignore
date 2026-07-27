@@ -9,10 +9,11 @@ __pycache__/
 .env
 
 # Directorios de Datos (Evitar subir datasets pesados y modelos)
-datasets/
-models/
-!models/.gitkeep
-!datasets/.gitkeep
+/datasets/
+/models/
+!/models/.gitkeep
+!/datasets/.gitkeep
+
 
 # IDE y Sistema Operativo
 .vscode/
@@ -20,5 +21,5 @@ models/
 .DS_Store
 Thumbs.db
 
-# Jupyter
-.ipynb_checkpoints/
+/data/
+/experiments/
